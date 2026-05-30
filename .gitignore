@@ -1,0 +1,43 @@
+# ---------------------------------------------------------------------------
+# Environment files
+# Commit only the *.example templates; never commit real secrets.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+.env.local
+.env.*.local
+!.env.example
+!.env.local.example
+
+# ---------------------------------------------------------------------------
+# Python (apps/api) — uv, caches, virtual environments
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# ---------------------------------------------------------------------------
+# Node / Next.js (apps/web)
+# ---------------------------------------------------------------------------
+node_modules/
+.next/
+out/
+.turbo/
+
+# ---------------------------------------------------------------------------
+# Lockfiles — pnpm is the only supported package manager.
+# Commit pnpm-lock.yaml; never commit npm or yarn lockfiles.
+# ---------------------------------------------------------------------------
+package-lock.json
+yarn.lock
+
+# ---------------------------------------------------------------------------
+# Editor / OS noise
+# ---------------------------------------------------------------------------
+.DS_Store
+*.log
