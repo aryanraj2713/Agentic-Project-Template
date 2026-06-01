@@ -101,7 +101,14 @@ directory**.
    background workers in the default scaffold. Add them per-project only when a real
    project needs them.
 
----
+## 3. Code Quality Instructions
+
+1. Place all constants, configurations, JSON schemas, and enums in dedicated `config`, `constants`, or `enums` files.
+2. Break large code blocks into smaller, modular functions, services, or reusable components wherever possible.
+3. Follow standard file and folder naming conventions to keep the project structure clean and predictable.
+4. Keep docstrings short, clear, and useful. Avoid overly long explanations.
+5. Add concise comments only where they improve readability or explain non-obvious logic. Avoid unnecessary comments.
+
 
 ## 4. Backend Instructions
 
