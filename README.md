@@ -8,17 +8,6 @@ Router frontend managed with [`pnpm`](https://pnpm.io/) (`apps/web`), plus a res
 documentation, and minimal generic examples — no business logic. The layout stays small,
 flat, and explicit so it is friendly for both humans and AI agents to build on.
 
-## Structure
-
-```
-.
-├── apps/
-│   ├── api/        # FastAPI backend (uv)
-│   └── web/        # Next.js App Router frontend (pnpm)
-└── packages/
-    └── shared/     # Placeholder for genuinely-shared code (intentionally empty)
-```
-
 ## Documentation
 
 - **Setup & run instructions** → [`Setup.md`](Setup.md)
