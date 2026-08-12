@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "@template/web",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.15.0",
@@ -7,28 +7,34 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "generate:api": "openapi-ts"
   },
   "dependencies": {
-    "next": "^15.5.18",
+    "@hookform/resolvers": "^5.2.0",
+    "next": "16.3.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-hook-form": "^7.60.0",
+    "server-only": "^0.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.17.0",
     "tailwind-merge": "^3.6.0",
-    "tailwindcss-animate": "^1.0.7"
+    "zod": "^4.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.41",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
-    "autoprefixer": "^10.5.0",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "^15.5.18",
+    "@hey-api/client-next": "^0.3.0",
+    "@hey-api/openapi-ts": "^0.85.0",
+    "@tailwindcss/postcss": "^4.1.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "16.3.0",
     "postcss": "^8.5.15",
-    "tailwindcss": "^3.4.19",
+    "tailwindcss": "^4.1.0",
     "typescript": "^5.9.3"
   }
 }

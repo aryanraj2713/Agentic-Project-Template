@@ -13,14 +13,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application configuration sourced from environment variables.
 
-    The ``database_url`` field is read from the ``DATABASE_URL`` environment
-    variable (matching is case-insensitive) and drives both the SQLAlchemy
-    engine and the Alembic migration environment.
+    ``database_url`` drives SQLAlchemy and Alembic. The remaining settings
+    configure the generic development-only session example used by the web
+    template. Replace those example credentials with a real identity provider
+    before deploying an application based on this scaffold.
     """
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str
+    auth_demo_username: str
+    auth_demo_password: str
+    auth_session_secret: str
+    auth_session_ttl_seconds: int = 3600
 
 
 @lru_cache

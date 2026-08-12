@@ -5,7 +5,7 @@
 # One-shot local setup for the template, following Setup.md:
 #   - checks prerequisites (uv, node, pnpm)
 #   - backend  (apps/api): create .env from .env.example, then `uv sync`
-#   - frontend (apps/web): create .env.local from .env.local.example, then `pnpm install`
+#   - frontend (apps/web): create .env.local from .env.local.example, then root `pnpm install`
 #
 # It does NOT start the dev servers or run migrations — see Setup.md for those.
 # Re-running is safe: existing .env files are left untouched.
@@ -69,13 +69,13 @@ info "Setting up the frontend (apps/web)"
 
 if [ ! -f "${WEB_DIR}/.env.local" ]; then
   cp "${WEB_DIR}/.env.local.example" "${WEB_DIR}/.env.local"
-  echo "    created apps/web/.env.local from .env.local.example — set NEXT_PUBLIC_API_URL if needed."
+  echo "    created apps/web/.env.local from .env.local.example — set API_URL if needed."
 else
   echo "    apps/web/.env.local already exists — leaving it untouched."
 fi
 
-( cd "${WEB_DIR}" && pnpm install )
-echo "    frontend dependencies installed via 'pnpm install'."
+( cd "${ROOT_DIR}" && pnpm install )
+echo "    frontend workspace dependencies installed via root 'pnpm install'."
 
 # ---------------------------------------------------------------------------
 # Done
@@ -85,5 +85,5 @@ cat <<'EOF'
 Next steps (see Setup.md for details):
   - Backend:  cd apps/api && uv run uvicorn app.main:app --reload   # http://localhost:8000
   - Migrate:  cd apps/api && uv run alembic upgrade head
-  - Frontend: cd apps/web && pnpm dev                               # http://localhost:3000
+  - Frontend: pnpm dev                                               # http://localhost:3000
 EOF

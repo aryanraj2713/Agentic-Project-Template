@@ -17,7 +17,8 @@ Read this guide fully before making changes, and follow it on every task.
 This template gives you a typed, conventional starting point for a full-stack project:
 
 - A typed **Python backend** (FastAPI, managed with `uv`) at `apps/api`.
-- A typed **TypeScript frontend** (Next.js App Router, managed with `pnpm`) at `apps/web`.
+- A typed **TypeScript frontend** (Next.js 16.3 App Router and Server Components,
+  managed with `pnpm`) at `apps/web`.
 - A reserved **shared package** placeholder at `packages/shared`.
 
 The goal is to let a Developer (human or AI agent) start building immediately with all
@@ -49,6 +50,10 @@ directory**.
 ├── README.md                   # Small landing page (overview + links to Setup.md and AGENTS.md)
 ├── Setup.md                    # Setup_Guide: install & run instructions (human-facing)
 ├── .gitignore                  # Excludes real .env files, caches, node_modules, lockfile noise
+├── package.json                 # Root Turborepo scripts + Node engine requirement
+├── pnpm-workspace.yaml          # pnpm workspace membership
+├── pnpm-lock.yaml               # Root workspace lockfile (committed)
+├── turbo.json                   # Cached task graph for Node workspaces
 ├── apps/
 │   ├── api/                    # Backend_App — FastAPI, managed with uv
 │   │   ├── app/
@@ -59,28 +64,32 @@ directory**.
 │   │   │   ├── models.py       # SQLAlchemy declarative Base + ORM models (autogenerate target)
 │   │   │   ├── schemas.py      # Pydantic v2 request/response models
 │   │   │   ├── routes.py       # Application API routes (Example_Endpoint: /items)
+│   │   │   ├── auth.py         # Generic signed-session API example
 │   │   │   └── health.py       # Health_Endpoint (GET /health), kept separate from routes
 │   │   ├── alembic/            # Migration environment (env.py, script.py.mako, versions/)
 │   │   ├── alembic.ini         # Alembic configuration
 │   │   ├── pyproject.toml      # Dependencies + [tool.ruff] / [tool.ty] config (uv)
 │   │   ├── uv.lock             # Backend lockfile (committed)
 │   │   └── .env.example        # Documents DATABASE_URL with a placeholder value
-│   └── web/                    # Frontend_App — Next.js App Router, managed with pnpm
+│   └── web/                    # Frontend_App — Next.js 16.3 App Router, managed with pnpm
 │       ├── app/
 │       │   ├── layout.tsx      # Root layout; imports globals.css
-│       │   ├── page.tsx        # Example_Page (client component: fetch + loading + error states)
-│       │   └── globals.css     # Tailwind base/component/utility layers
+│       │   ├── page.tsx        # Example_Page (Server Component + Suspense)
+│       │   ├── actions/auth.ts # Server Actions that own HttpOnly session cookies
+│       │   ├── error.tsx       # Route error boundary
+│       │   └── globals.css     # Tailwind CSS v4 theme and utilities import
 │       ├── lib/
-│       │   ├── api.ts          # Typed backend helpers (single place for fetch + base URL)
+│       │   ├── api/            # Hey API generated SDK + server-only wrappers
+│       │   ├── env.ts          # Zod-validated server environment variables
+│       │   ├── auth.ts         # HttpOnly-cookie reader for SSR requests
 │       │   └── utils.ts        # Shared utilities (e.g., shadcn `cn` helper)
 │       ├── components/ui/      # shadcn/ui generated primitives live here
 │       ├── components.json     # shadcn/ui configuration
 │       ├── package.json        # Scripts + packageManager (pnpm)
-│       ├── pnpm-lock.yaml       # Frontend lockfile (committed)
 │       ├── tsconfig.json       # TypeScript strict mode
-│       ├── tailwind.config.ts  # Tailwind configuration
-│       ├── postcss.config.mjs  # PostCSS configuration
-│       └── .env.local.example  # Documents NEXT_PUBLIC_API_URL with a placeholder value
+│       ├── openapi-ts.config.ts # Hey API generator configuration
+│       ├── postcss.config.mjs  # Tailwind CSS v4 PostCSS configuration
+│       └── .env.local.example  # Documents server-only API_URL and cookie name
 └── packages/
     └── shared/                 # Shared_Package placeholder (README only; no app code yet)
         └── README.md
@@ -97,9 +106,10 @@ directory**.
    responsibility. A request can be read top to bottom, from route to database.
 3. **Generic.** Example code uses placeholder names and carries no business logic, so the
    template can be cloned into unrelated projects without deleting inherited domain code.
-4. **Production-ready without enterprise heaviness.** No auth, containers, CI, or
-   background workers in the default scaffold. Add them per-project only when a real
-   project needs them.
+4. **Production-ready without enterprise heaviness.** The scaffold includes a minimal,
+   server-managed cookie-session example; replace its generic demo credential endpoint
+   with a real identity provider before deployment. Containers, CI, and background workers
+   remain out of scope by default.
 
 ## 3. Code Quality Instructions
 
@@ -127,7 +137,7 @@ The Backend_App lives at `apps/api` and is managed with `uv`.
   exceptions; this is what `ty` verifies.
 - The FastAPI application object is **`app.main:app`**. Run it with
   `uv run uvicorn app.main:app --reload` from within `apps/api`.
-- Routers are defined in `routes.py` and `health.py` and registered in `main.py` via
+- Routers are defined in `routes.py`, `health.py`, and `auth.py` and registered in `main.py` via
   `app.include_router(...)`.
 - The database schema is created **only** by the Migration_System (Alembic). Never call
   `Base.metadata.create_all(...)`.
@@ -138,14 +148,19 @@ The Backend_App lives at `apps/api` and is managed with `uv`.
 
 The Frontend_App lives at `apps/web` and is managed with `pnpm`.
 
-- **Next.js App Router only.** Use the `app/` directory. Do **not** create a `pages/`
-  directory (the legacy Pages Router is omitted).
+- **Next.js 16.3 App Router only.** Use the `app/` directory. Do **not** create a `pages/`
+  directory (the legacy Pages Router is omitted). Pages and data components are Server
+  Components by default; add `"use client"` only for browser interaction.
 - **Strict TypeScript.** `tsconfig.json` enables `"strict": true`. Keep it strict.
-- **Styling with Tailwind CSS + shadcn/ui.** Global styles are in `app/globals.css`;
+- **Styling with Tailwind CSS v4 + shadcn/ui.** Global styles are in `app/globals.css`;
   generated UI primitives live in `components/ui/`.
-- **All backend calls go through `lib/api.ts`.** Never use inline `fetch` inside
-  components. Add a typed helper to `lib/api.ts` and call it from the component.
-- **Always render loading and error states** for any view that fetches data.
+- **All backend calls use the Hey API generated SDK.** Run `pnpm generate:api` whenever
+  FastAPI's OpenAPI contract changes. Components call server-only wrappers in `lib/api/`;
+  they never call `fetch` inline.
+- **Use Suspense and error boundaries.** Stream async Server Components behind Suspense
+  and keep `app/error.tsx` / `app/global-error.tsx` for unexpected failures.
+- **Forms use React Hook Form and Server Actions.** Validate both client-side and in the
+  Server Action; Server Actions own every write to HttpOnly cookies.
 
 ---
 
@@ -181,13 +196,14 @@ uv run alembic upgrade head
   uv sync               # install/sync the environment from the lockfile
   ```
   Commit `apps/api/uv.lock`.
-- **Frontend uses `pnpm` only.** Never use `npm` or `yarn` in `apps/web`.
+- **Frontend uses `pnpm` only.** Never use `npm` or `yarn`. This is a pnpm workspace, so
+  dependency installation and the committed `pnpm-lock.yaml` live at the repository root.
   ```bash
-  pnpm add <package>     # add a dependency
-  pnpm add -D <package>  # add a dev dependency
-  pnpm install           # install from the lockfile
+  pnpm --filter @template/web add <package>     # add a web dependency
+  pnpm --filter @template/web add -D <package>  # add a web dev dependency
+  pnpm install                                   # install the root workspace lockfile
   ```
-  Commit `apps/web/pnpm-lock.yaml`. **Never commit `package-lock.json` or `yarn.lock`** —
+  Commit root `pnpm-lock.yaml`. **Never commit `package-lock.json` or `yarn.lock`** —
   they are excluded by `.gitignore` and must stay out of version control.
 
 ---
@@ -213,6 +229,13 @@ pnpm lint        # linting — must report zero errors
 pnpm typecheck   # tsc --noEmit — must report zero type errors
 ```
 
+Or run all Node workspaces from the repository root through Turborepo:
+
+```bash
+pnpm lint
+pnpm typecheck
+```
+
 There is **no test command** to run — this template has no testing setup (see
 [§1](#1-purpose) and [§14](#14-prohibited-actions)). The static checks above are the
 complete verification suite.
@@ -226,7 +249,7 @@ On every task:
 1. **Read `AGENTS.md` first** (this file) and follow its conventions. It is the
    authoritative source of truth and wins on any conflict.
 2. **Follow the established conventions** — file layout, typing, the one-file-per-
-   responsibility backend structure, and the `lib/api.ts` rule on the frontend.
+   responsibility backend structure, and the generated Hey API wrapper rule on the frontend.
 3. **Make the change** in the smallest, most explicit way that fits the existing patterns.
 4. **Run the checks before considering work done:** all backend checks within `apps/api`
    and all frontend checks within `apps/web` (see [§8](#8-type-checking--linting)).
@@ -240,10 +263,10 @@ On every task:
 - **Keep changes small and focused.** Refactor one responsibility at a time.
 - **Preserve types.** Do not weaken or drop type annotations; both apps stay fully typed.
 - **Preserve the layout.** Keep one file per backend responsibility; keep all backend
-  calls in `lib/api.ts` on the frontend.
+  calls in the generated Hey API SDK and `lib/api/` server-only wrappers on the frontend.
 - **Run the checks after every refactor** ([§8](#8-type-checking--linting)) and fix any
   issues before finishing.
-- **Do not add scope.** A refactor should not introduce auth, tests, CI, containers, or
+- **Do not add scope.** A refactor should not introduce tests, CI, containers, or
   speculative abstractions (see [§14](#14-prohibited-actions)).
 
 ---
@@ -265,12 +288,16 @@ On every task:
 
 ## 12. Frontend Design Rules
 
-- **Typed helpers in `lib/api.ts`.** Every backend call is a typed function in `lib/api.ts`
-  with a typed return. Components import and call those helpers; they never `fetch` inline.
-- **Base URL from `NEXT_PUBLIC_API_URL`.** `lib/api.ts` reads the backend base URL from
-  `NEXT_PUBLIC_API_URL` and throws a **named error** if it is missing at call time.
-- **Render loading and error states.** Any data-fetching view shows a loading state while
-  pending and an error state when a request fails.
+- **Generated Hey API SDK.** `openapi-ts.config.ts` generates `lib/api/generated/` from
+  FastAPI's OpenAPI document using `@hey-api/client-next`. Do not hand-edit generated files;
+  call typed server-only wrappers in `lib/api/` instead.
+- **Validated server environment.** `lib/env.ts` validates `API_URL` and `AUTH_COOKIE_NAME`
+  with Zod. Neither value uses a `NEXT_PUBLIC_` prefix or reaches browser code.
+- **HttpOnly session cookie.** `app/actions/auth.ts` is the only cookie writer. It receives
+  the access token from the API, sets a Secure-in-production HttpOnly SameSite=Lax cookie,
+  and Server Components forward it as a bearer token during SSR.
+- **Render loading and error states.** Use `Suspense` / `loading.tsx` for pending work and
+  `error.tsx` for unexpected failures.
 - **shadcn primitives go in `components/ui/`.** Add them with the shadcn CLI:
   ```bash
   pnpm dlx shadcn@latest add <component>
@@ -282,8 +309,9 @@ On every task:
 
 - **Backend:** `DATABASE_URL` is read by `app/config.py` (and Alembic). Configure it in
   `apps/api/.env` (copy from the committed `apps/api/.env.example`). PostgreSQL by default.
-- **Frontend:** `NEXT_PUBLIC_API_URL` is read by `lib/api.ts`. Configure it in
-  `apps/web/.env.local` (copy from the committed `apps/web/.env.local.example`).
+- **Frontend:** `API_URL` and `AUTH_COOKIE_NAME` are validated by `lib/env.ts`. Configure
+  them in `apps/web/.env.local` (copy from the committed `apps/web/.env.local.example`).
+  They are server-only and must not be renamed with a `NEXT_PUBLIC_` prefix.
 - **Use the example files.** `.env.example` and `.env.local.example` are committed and
   contain **placeholder values only**.
 - **Never commit real secrets.** Real `.env` and `.env.local` files are excluded by
@@ -297,7 +325,6 @@ Do **not**, as part of routine work on this template:
 
 - **Add any test scaffolding** — no test runner, test framework, or test files. This
   template intentionally has **no testing setup**, and tests are **not required**.
-- **Add authentication or authorization.** Omitted from the default scaffold.
 - **Add containerization** (Dockerfiles, compose files, etc.). Omitted by default.
 - **Add continuous integration** (CI workflows/pipelines). Omitted by default.
 - **Add background workers** (queues, schedulers, task runners). Omitted by default.
@@ -305,7 +332,8 @@ Do **not**, as part of routine work on this template:
   generic placeholder names (e.g., `Item`) and carry no domain meaning.
 - **Put speculative code in `packages/shared`.** Add code there only when it is genuinely
   shared by more than one consumer.
-- **Use inline `fetch` in components.** All backend calls go through `lib/api.ts`.
+- **Use inline `fetch` in components.** All backend calls go through the generated Hey API
+  SDK and typed wrappers in `lib/api/`.
 - **Commit `package-lock.json` or `yarn.lock`.** Frontend uses `pnpm` (`pnpm-lock.yaml`).
 - **Call `Base.metadata.create_all(...)`.** Alembic is the only schema creator.
 
@@ -319,6 +347,9 @@ To work in this repository you should be comfortable with:
 - **`ty`** — Python type checker (the backend type-checking gate).
 - **`ruff`** — Python linter and formatter (the backend lint/format gates).
 - **Node.js + `pnpm`** — the frontend runtime and package manager.
+- **Turborepo** — root task orchestration for Node workspaces.
+- **React Hook Form + Zod** — client form state and shared validation schemas.
+- **Hey API** — OpenAPI-driven TypeScript client generation with `client-next`.
 - **shadcn CLI** — adding UI primitives via `pnpm dlx shadcn@latest add <component>`.
 
 See [`Setup.md`](Setup.md) (the Setup_Guide) for installation instructions for each tool,
@@ -339,7 +370,8 @@ A typical full-stack feature, end to end:
    uv run alembic revision --autogenerate -m "add <feature>"
    uv run alembic upgrade head
    ```
-5. **Frontend helper** — add a typed function in `apps/web/lib/api.ts` for the new endpoint.
+5. **Frontend client** — regenerate the Hey API client with `pnpm generate:api`, then add a
+   typed server-only wrapper in `apps/web/lib/api/` for the new endpoint.
 6. **Page/UI** — build the page or component using that helper, with loading and error
    states; add shadcn primitives via the CLI if needed.
 7. **Run the checks** — backend (`uv run ty check`, `uv run ruff check .`,
@@ -353,8 +385,8 @@ A typical full-stack feature, end to end:
 
 1. **Reproduce** the bug (hit the endpoint, load the page, or observe the failing check).
 2. **Locate** it using the one-file-per-responsibility layout — follow the request from
-   `main.py` → `routes.py`/`health.py` → `schemas.py` → `db.py`/`models.py` on the backend,
-   or from `app/page.tsx` → `lib/api.ts` on the frontend.
+  `main.py` → `routes.py`/`health.py`/`auth.py` → `schemas.py` → `db.py`/`models.py` on the backend,
+  or from `app/page.tsx` → `lib/api/` on the frontend.
 3. **Fix** the smallest thing that resolves the issue, preserving types and conventions.
 4. **Run the checks** ([§8](#8-type-checking--linting)) and confirm they all pass.
 5. **Update docs** if the fix changed structure, build, or run steps.

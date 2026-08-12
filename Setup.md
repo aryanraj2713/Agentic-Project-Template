@@ -7,7 +7,8 @@ short overview of the template, see [`README.md`](README.md).
 This is a generic, reusable full-stack monorepo:
 
 - **`apps/api`** — A [FastAPI](https://fastapi.tiangolo.com/) backend managed with [`uv`](https://docs.astral.sh/uv/). Fully type-hinted, with [SQLAlchemy](https://www.sqlalchemy.org/) models and [Alembic](https://alembic.sqlalchemy.org/) migrations against PostgreSQL.
-- **`apps/web`** — A [Next.js](https://nextjs.org/) App Router frontend written in strict TypeScript, styled with [Tailwind CSS](https://tailwindcss.com/) and [shadcn/ui](https://ui.shadcn.com/), using [`pnpm`](https://pnpm.io/) as its package manager.
+- **`apps/web`** — A Next.js 16.3 App Router frontend written in strict TypeScript. It uses Server Components, Server Actions, React Hook Form, Tailwind CSS v4, shadcn/ui, and a server-managed HttpOnly session example.
+- **Root Node workspace** — [`pnpm`](https://pnpm.io/) workspaces and [Turborepo](https://turborepo.com/) orchestrate the frontend task graph and OpenAPI client generation.
 - **`packages/shared`** — A placeholder for code that becomes genuinely shared across apps. It is intentionally empty until something is actually shared.
 
 > **No testing setup.** This template intentionally ships with no test runner, test framework, or test scaffolding. Correctness is verified through static checks: type checking, linting, and format checking (see [Verification checks](#verification-checks)).
@@ -47,7 +48,7 @@ See the [uv installation docs](https://docs.astral.sh/uv/getting-started/install
 
 The frontend runs on Node.js and uses `pnpm` for dependency management.
 
-- **Node.js** — install the current LTS from [nodejs.org](https://nodejs.org/) or a version manager such as [`nvm`](https://github.com/nvm-sh/nvm). Verify with `node --version`.
+- **Node.js 20.9+** — install the current LTS from [nodejs.org](https://nodejs.org/) or a version manager such as [`nvm`](https://github.com/nvm-sh/nvm). Verify with `node --version`.
 - **`pnpm`** — the easiest path is [Corepack](https://nodejs.org/api/corepack.html), which ships with Node.js:
 
   ```bash
@@ -145,17 +146,16 @@ uv run alembic upgrade head
 
 ## Frontend (`apps/web`)
 
-All frontend commands run from inside `apps/web`.
+Commands scoped to the web app run from inside `apps/web`; install and Turborepo commands run from the repository root.
 
 ### Setup
 
 ```bash
-cd apps/web
-cp .env.local.example .env.local   # then edit .env.local with your values
 pnpm install
+cp apps/web/.env.local.example apps/web/.env.local   # then edit .env.local with your values
 ```
 
-Set `NEXT_PUBLIC_API_URL` in `.env.local` to the backend base URL (default placeholder `http://localhost:8000`). `lib/api.ts` reads this variable for all backend calls and throws a named error if it is missing.
+Set `API_URL` in `apps/web/.env.local` to the backend base URL (default placeholder `http://localhost:8000`). It is validated with Zod and stays server-only: do not use `NEXT_PUBLIC_API_URL`. `AUTH_COOKIE_NAME` selects the HttpOnly cookie name used by the sign-in Server Action.
 
 ### Run
 
@@ -165,6 +165,26 @@ pnpm dev
 ```
 
 The dev server runs on `http://localhost:3000` by default.
+
+Or run the Node workspace through Turborepo from the repository root:
+
+```bash
+pnpm dev
+```
+
+### Authentication example
+
+The template includes a generic development-only sign-in flow. Copy `apps/api/.env.example` to `apps/api/.env`; it documents `AUTH_DEMO_USERNAME`, `AUTH_DEMO_PASSWORD`, and `AUTH_SESSION_SECRET`. The Next.js Server Action exchanges those credentials with `POST /auth/session`, stores the resulting bearer token in a Secure-in-production, HttpOnly, SameSite=Lax cookie, and forwards it only during server-side API requests. Replace this demo endpoint with a real identity provider before deployment.
+
+### Generated API client
+
+FastAPI publishes OpenAPI at `/openapi.json`. The frontend's Hey API `client-next` SDK is checked in under `apps/web/lib/api/generated/`. Regenerate it after any API contract change while the backend is running:
+
+```bash
+pnpm generate:api
+```
+
+Set `OPENAPI_URL` to override the default `http://localhost:8000/openapi.json` source when needed. Do not edit generated files by hand; add server-only wrappers under `apps/web/lib/api/` instead.
 
 ### Adding shadcn/ui components
 
@@ -196,6 +216,13 @@ Frontend — run within `apps/web`:
 cd apps/web
 pnpm lint        # linting — expects zero lint errors
 pnpm typecheck   # tsc --noEmit — expects zero type errors
+```
+
+Or run Node checks for all workspaces from the repository root:
+
+```bash
+pnpm lint
+pnpm typecheck
 ```
 
 See [`AGENTS.md`](AGENTS.md) for the full conventions, workflows, and definition of done.

@@ -7,7 +7,9 @@ through ``response_model`` without manual conversion. The model is intentionally
 trivial (an ``id`` and a ``name``) and carries no domain logic.
 """
 
-from pydantic import BaseModel, ConfigDict
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ItemRead(BaseModel):
@@ -22,3 +24,24 @@ class ItemRead(BaseModel):
 
     id: int
     name: str
+
+
+class SessionCredentials(BaseModel):
+    """Generic sign-in credentials for the template's development flow."""
+
+    username: str = Field(min_length=1, max_length=255)
+    password: str = Field(min_length=1, max_length=255)
+
+
+class SessionToken(BaseModel):
+    """Signed bearer token returned to the Next.js server action."""
+
+    access_token: str
+    expires_at: datetime
+    token_type: str = "bearer"
+
+
+class SessionUser(BaseModel):
+    """Minimal authenticated principal for the generic template."""
+
+    username: str
