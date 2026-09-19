@@ -29,7 +29,7 @@
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@hey-api/client-next": "^0.3.0",
-    "@hey-api/openapi-ts": "^0.85.0",
+    "@hey-api/openapi-ts": "^0.97.3",
     "@tailwindcss/postcss": "^4.1.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.3.0",
